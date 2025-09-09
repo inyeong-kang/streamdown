@@ -34,12 +34,17 @@ export type StreamdownProps = HardenReactMarkdownProps & {
   parseIncompleteMarkdown?: boolean;
   className?: string;
   shikiTheme?: [BundledTheme, BundledTheme];
+  isAnimating?: boolean;
 };
 
 export const ShikiThemeContext = createContext<[BundledTheme, BundledTheme]>([
   "github-light" as BundledTheme,
   "github-dark" as BundledTheme,
 ]);
+
+export const StreamdownRuntimeContext = createContext<{ isAnimating: boolean }>(
+  { isAnimating: false }
+);
 
 type BlockProps = HardenReactMarkdownProps & {
   content: string;
@@ -81,6 +86,7 @@ export const Streamdown = memo(
     remarkPlugins,
     className,
     shikiTheme = ["github-light", "github-dark"],
+    isAnimating = false,
     ...props
   }: StreamdownProps) => {
     // Parse the children to remove incomplete markdown tokens if enabled
@@ -95,31 +101,35 @@ export const Streamdown = memo(
       []
     );
 
+    const runtimeAnimating = isAnimating;
+
     return (
       <ShikiThemeContext.Provider value={shikiTheme}>
-        <div className={cn("space-y-4", className)} {...props}>
-          {blocks.map((block, index) => (
-            <Block
-              allowedImagePrefixes={allowedImagePrefixes}
-              allowedLinkPrefixes={allowedLinkPrefixes}
-              components={{
-                ...defaultComponents,
-                ...components,
-              }}
-              content={block}
-              defaultOrigin={defaultOrigin}
-              // biome-ignore lint/suspicious/noArrayIndexKey: "required"
-              key={`${generatedId}-block_${index}`}
-              rehypePlugins={[rehypeKatexPlugin, ...(rehypePlugins ?? [])]}
-              remarkPlugins={[
-                [remarkGfm, remarkGfmOptions],
-                [remarkMath, remarkMathOptions],
-                ...(remarkPlugins ?? []),
-              ]}
-              shouldParseIncompleteMarkdown={shouldParseIncompleteMarkdown}
-            />
-          ))}
-        </div>
+        <StreamdownRuntimeContext.Provider value={{ isAnimating: runtimeAnimating }}>
+          <div className={cn("space-y-4", className)} {...props}>
+            {blocks.map((block, index) => (
+              <Block
+                allowedImagePrefixes={allowedImagePrefixes}
+                allowedLinkPrefixes={allowedLinkPrefixes}
+                components={{
+                  ...defaultComponents,
+                  ...components,
+                }}
+                content={block}
+                defaultOrigin={defaultOrigin}
+                // biome-ignore lint/suspicious/noArrayIndexKey: "required"
+                key={`${generatedId}-block_${index}`}
+                rehypePlugins={[rehypeKatexPlugin, ...(rehypePlugins ?? [])]}
+                remarkPlugins={[
+                  [remarkGfm, remarkGfmOptions],
+                  [remarkMath, remarkMathOptions],
+                  ...(remarkPlugins ?? []),
+                ]}
+                shouldParseIncompleteMarkdown={shouldParseIncompleteMarkdown}
+              />
+            ))}
+          </div>
+        </StreamdownRuntimeContext.Provider>
       </ShikiThemeContext.Provider>
     );
   },
