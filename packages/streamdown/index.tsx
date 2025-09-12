@@ -135,6 +135,7 @@ export const Streamdown = memo(
   },
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
-    prevProps.shikiTheme === nextProps.shikiTheme
+    prevProps.shikiTheme === nextProps.shikiTheme &&
+    prevProps.isAnimating === nextProps.isAnimating
 );
 Streamdown.displayName = "Streamdown";
