@@ -38,6 +38,7 @@ export type StreamdownProps = HardenReactMarkdownProps & {
   className?: string;
   shikiTheme?: [BundledTheme, BundledTheme];
   mermaidConfig?: MermaidConfig;
+  isAnimating?: boolean;
 };
 
 export const ShikiThemeContext = createContext<[BundledTheme, BundledTheme]>([
@@ -46,6 +47,10 @@ export const ShikiThemeContext = createContext<[BundledTheme, BundledTheme]>([
 ]);
 
 export const MermaidConfigContext = createContext<MermaidConfig | undefined>(undefined);
+
+export const StreamdownRuntimeContext = createContext<{ isAnimating: boolean }>(
+  { isAnimating: false }
+);
 
 type BlockProps = HardenReactMarkdownProps & {
   content: string;
@@ -88,6 +93,7 @@ export const Streamdown = memo(
     className,
     shikiTheme = ["github-light", "github-dark"],
     mermaidConfig,
+    isAnimating = false,
     ...props
   }: StreamdownProps) => {
     // Parse the children to remove incomplete markdown tokens if enabled
@@ -105,6 +111,7 @@ export const Streamdown = memo(
     return (
       <ShikiThemeContext.Provider value={shikiTheme}>
         <MermaidConfigContext.Provider value={mermaidConfig}>
+          <StreamdownRuntimeContext.Provider value={{ isAnimating }}>
           <div className={cn("space-y-4", className)} {...props}>
             {blocks.map((block, index) => (
               <Block
@@ -128,12 +135,14 @@ export const Streamdown = memo(
               />
             ))}
           </div>
+          </StreamdownRuntimeContext.Provider>
         </MermaidConfigContext.Provider>
       </ShikiThemeContext.Provider>
     );
   },
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
-    prevProps.shikiTheme === nextProps.shikiTheme
+    prevProps.shikiTheme === nextProps.shikiTheme &&
+    prevProps.isAnimating === nextProps.isAnimating
 );
 Streamdown.displayName = "Streamdown";

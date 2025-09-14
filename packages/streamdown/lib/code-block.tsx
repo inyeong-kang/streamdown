@@ -16,7 +16,7 @@ import {
   createHighlighter,
 } from "shiki";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
-import { ShikiThemeContext } from "../index";
+import { ShikiThemeContext, StreamdownRuntimeContext } from "../index";
 import { cn, save } from "./utils";
 
 const PRE_TAG_REGEX = /<pre(\s|>)/;
@@ -29,10 +29,12 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
 
 type CodeBlockContextType = {
   code: string;
+  isReady: boolean;
 };
 
 const CodeBlockContext = createContext<CodeBlockContextType>({
   code: "",
+  isReady: false,
 });
 
 class HighlighterManager {
@@ -173,6 +175,7 @@ export const CodeBlock = ({
   const [darkHtml, setDarkHtml] = useState<string>("");
   const mounted = useRef(false);
   const [lightTheme, darkTheme] = useContext(ShikiThemeContext);
+  const { isAnimating } = useContext(StreamdownRuntimeContext);
 
   useEffect(() => {
     mounted.current = true;
@@ -192,7 +195,7 @@ export const CodeBlock = ({
   }, [code, language, lightTheme, darkTheme, preClassName]);
 
   return (
-    <CodeBlockContext.Provider value={{ code }}>
+    <CodeBlockContext.Provider value={{ code, isReady: Boolean(html && darkHtml) }}>
       <div
         className="my-4 w-full overflow-hidden rounded-xl border"
         data-code-block-container
@@ -564,7 +567,8 @@ export const CodeBlockDownloadButton = ({
   language?: BundledLanguage;
 }) => {
   const contextCode = useContext(CodeBlockContext).code;
-  const code = propCode ?? contextCode;
+  const code = propCode ?? contextCode;  
+  const { isAnimating } = useContext(StreamdownRuntimeContext);
   const extension =
     language && language in languageExtensionMap
       ? languageExtensionMap[language]
@@ -584,12 +588,16 @@ export const CodeBlockDownloadButton = ({
   return (
     <button
       className={cn(
-        "cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground",
+        "p-1 text-muted-foreground transition-all",
+        (props.disabled || isAnimating)
+          ? "cursor-default opacity-50"
+          : "cursor-pointer hover:text-foreground",
         className
       )}
       onClick={downloadCode}
       title="Download file"
       type="button"
+      disabled={props.disabled || isAnimating}
       {...props}
     >
       {children ?? <DownloadIcon size={14} />}
@@ -608,7 +616,8 @@ export const CodeBlockCopyButton = ({
 }: CodeBlockCopyButtonProps & { code?: string }) => {
   const [isCopied, setIsCopied] = useState(false);
   const timeoutRef = useRef(0);
-  const contextCode = useContext(CodeBlockContext).code;
+  const { code: contextCode } = useContext(CodeBlockContext);
+  const { isAnimating } = useContext(StreamdownRuntimeContext);
   const code = propCode ?? contextCode;
 
   const copyToClipboard = async () => {
@@ -643,11 +652,15 @@ export const CodeBlockCopyButton = ({
   return (
     <button
       className={cn(
-        "cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground",
+        "p-1 text-muted-foreground transition-all",
+        (props.disabled || isAnimating)
+          ? "cursor-default opacity-50"
+          : "cursor-pointer hover:text-foreground",
         className
       )}
       onClick={copyToClipboard}
       type="button"
+      disabled={props.disabled || isAnimating}
       {...props}
     >
       {children ?? <Icon size={14} />}
